@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Todo List</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+  <body>
+    <h1>Chuck Norris' Quote of the Day</h1>
+    <span th:text="${quote}">Quote</span>
+    <h1>Todo List</h1>
+    <table id="todoTable" border="1">
+      <tbody style="border: 1pt">
+        <tr th:each="todo: ${todos}">
+          <td>
+            <form
+              action="#"
+              th:action="@{'/todolist/{id}'(id=${todo.id})}"
+              th:method="delete"
+            >
+              <input type="hidden" name="_method" value="delete" />
+              <button type="submit" id="submitButton">Delete</button>
+            </form>
+          </td>
+          <td th:text="${todo.priority}" />
+          <td th:text="${todo.description}" />
+        </tr>
+      </tbody>
+    </table>
+    <h2>New Todo</h2>
+    <form id="todolistform" action="/todolist" method="post">
+      <div>
+        <label for="description">Description:</label>
+        <input name="description" id="description" />
+      </div>
+      <div>
+        <label for="priority">Priority</label>
+        <select name="priority" id="priority">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+      <div>
+        <button>Add todo</button>
+      </div>
+    </form>
+    <div>Number of todos: <span id="todoNumbers"/></div>
+    <script>
+      document.getElementById("todoNumbers").innerText += document.getElementById("todoTable").rows.length;
+    </script>
+  </body>
+</html>

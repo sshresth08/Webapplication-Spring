@@ -1,0 +1,3 @@
+# Override .gitignore (cf. https://cloud.google.com/sdk/gcloud/reference/builds/submit)
+# /target/*.jar must be included but subfolders can be excluded
+target/*/

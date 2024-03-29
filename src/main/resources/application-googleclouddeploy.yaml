@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    # Login username of the database. User postgres is standard in Postgres databases
+    # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.datasource.username
+    username: postgres
+    # cf. https://github.com/brettwooldridge/HikariCP#gear-configuration-knobs-baby
+    # adapt that to the database max_connections
+    # SELECT name, current_setting(name) FROM pg_settings WHERE name = 'max_connections'
+    # Google Cloud Run containers run on 8 core CPUs
+    hikari.maximum-pool-size: 8
+  # cf. https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data-migration.spring.sql.init.continue-on-error
+  # Sometimes, the database initialization or the route to it or the whitelisting is somewhat ongoing while the application starts
+  sql.init.continue-on-error: true
+  # admittedly rather pragmatic than safe for production
+  # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.jpa.hibernate.ddl-auto
+  # https://www.baeldung.com/spring-boot-data-sql-and-schema-sql#controlling-database-creation-using-hibernate
+  jpa.hibernate.ddl-auto: update 

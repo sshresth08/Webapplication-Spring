@@ -1,0 +1,7 @@
+FROM eclipse-temurin:17-jdk-alpine
+VOLUME /tmp
+# assume that the jar file is already there and has been build with the right Maven profile (googleclouddeploy)
+COPY ./target/*.jar /app.jar
+EXPOSE 8080
+# ENTRYPOINT in shell form such that the ENVs are being expanded
+ENTRYPOINT java -Dspring.cloud.gcp.sql.instance-connection-name=$GCP_CLOUD_SQL_INSTANCE_CONNECTION_NAME -Dspring.cloud.gcp.sql.database-name=$GCP_CLOUD_SQL_DATABASE_NAME -Dspring.datasource.password=$GCP_CLOUD_SQL_INSTANCE_DATASOURCE_PASSWORD -jar app.jar

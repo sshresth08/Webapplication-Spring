@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Palindrome Checker</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+  <body>
+    <h1>Palindrome Checker</h1>
+    <form id="palindromeform" action="/palindrome" method="post">
+      <div>
+        <label for="palindromecandidate">Palindrome Candidate:</label>
+        <input name="palindromecandidate" id="palindromecandidate" />
+      </div>
+      <div>
+        <button>Check</button>
+      </div>
+    </form>
+    <div>result: <span th:text="${result}" id="result" /></div>
+  </body>
+</html>

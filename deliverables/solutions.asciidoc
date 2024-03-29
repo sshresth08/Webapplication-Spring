@@ -1,0 +1,71 @@
+Some lab assignments request you to write down textual solutions in this file. If the answer is in prose, you can write it in either English or German.
+Please copy and paste the respective nearest headline above your solutions, such that I can map the assignments and your solutions.
+
+=== Clean up local branches
+
+
+
+- git branch -d palindrome_impl -> To delete fully merged local branch 
+
+- git branch -D todolistservice_comments -> To delete not fully merged local branch forcefully
+
+- git remote prune origin -> To delete remote tracking branch that no longer exist on the remote repository (e.g after merge requests have been resolved and the remote branches were deleted)
+
+
+=== Effective POM
+1.Which lines in deliverables/pom-effective.xml effectively define the Maven standard directory layout? 
+
+<resources>
+    <resource>
+        <filtering>true</filtering>
+        <directory>C:\Users\sudin\devops\sshresth-toolbox\src\main\resources</directory>
+        <includes>
+            <include>**/application*.yml</include>
+            <include>**/application*.yaml</include>
+            <include>**/application*.properties</include>
+        </includes>
+    </resource>
+    <resource>
+        <directory>C:\Users\sudin\devops\sshresth-toolbox\src\main\resources</directory>
+        <excludes>
+            <exclude>**/application*.yml</exclude>
+            <exclude>**/application*.yaml</exclude>
+            <exclude>**/application*.properties</exclude>
+        </excludes>
+    </resource>
+</resources>
+<testResources>
+    <testResource>
+        <directory>C:\Users\sudin\devops\sshresth-toolbox\src\test\resources</directory>
+    </testResource>
+</testResources>
+<directory>C:\Users\sudin\devops\sshresth-toolbox\target</directory>
+<finalName>toolbox-0.0.1-SNAPSHOT</finalName>
+
+2.The Maven default lifecycle defines a phase integration-tests where tests run that require the Toolbox Application to be in a started state. Which lines in deliverables/pom-effective.xml care for that?
+<plugin>
+    <artifactId>maven-failsafe-plugin</artifactId>
+    <version>3.0.0</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+            </goals>
+            <configuration>
+                <classesDirectory>C:\Users\sudin\devops\sshresth-toolbox\target\classes</classesDirectory>
+            </configuration>
+        </execution>
+    </executions>
+    <configuration>
+        <classesDirectory>C:\Users\sudin\devops\sshresth-toolbox\target\classes</classesDirectory>
+    </configuration>
+</plugin>
+
+=== === Build a Toolbox Standalone JAR
+
+mvn clean install -Pstandalone -> This command will use the "standalone" profile to build the JAR file.
+
+cd target 
+
+java -jar toolbox-0.0.1-SNAPSHOT.jar -> To run the JAR file using java command

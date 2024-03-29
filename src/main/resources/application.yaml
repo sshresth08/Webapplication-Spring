@@ -1,0 +1,11 @@
+spring:
+  # also includes application-myprofile.yml if Maven profile is set like 'mvn -P myprofile ...'
+  # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#features.profiles.adding-active-profiles
+  profiles.include: @spring.profile.from.maven@
+  # necessary to make DELETE requests from HTML forms (then POST requests with body _method=delete)
+  # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.web.spring.mvc.hiddenmethod.filter.enabled 
+  mvc.hiddenmethod.filter.enabled: true
+# needed for JAR deployment on VMs; otherwise the Spring Controllers redirect to http
+# https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#howto.webserver.use-behind-a-proxy-server
+# https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.server.server.forward-headers-strategy
+server.forward-headers-strategy: framework

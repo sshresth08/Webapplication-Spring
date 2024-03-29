@@ -1,0 +1,24 @@
+spring:
+  h2.console:
+    # deliberately enable the H2 Console
+    # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.h2.console.enabled
+    enabled: true
+    # path segment of the URL for the H2 Console
+    # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.h2.console.path
+    path: /h2-console
+    # allow remote browsers to open the h2-console
+    # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.h2.console.settings.web-allow-others
+    settings.web-allow-others: true
+  jpa:
+    # create database schema from code
+    # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.jpa.hibernate.ddl-auto 
+    # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#howto.data-initialization.using-hibernate
+    hibernate.ddl-auto: update
+    # defer src/main/resources/data.sql execution after Hibernate initialization
+    # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.jpa.defer-datasource-initialization
+    # https://www.baeldung.com/spring-boot-data-sql-and-schema-sql
+    defer-datasource-initialization: true
+  # JDBC URL that matches H2's setting "Generic H2 (Embedded)"
+  # http://www.h2database.com/html/cheatSheet.html
+  # https://docs.spring.io/spring-boot/docs/3.1.3/reference/htmlsingle/#application-properties.data.spring.datasource.url
+  datasource.url: jdbc:h2:mem:testdb

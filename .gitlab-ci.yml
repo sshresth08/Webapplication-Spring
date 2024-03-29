@@ -1,0 +1,155 @@
+stages:
+  - test
+  - build
+  - javadoc #um den Javadoc-Generierungsschritt darzustellen.
+  - deploy_staging
+  - performance
+  - deploy_production
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository" # put .m2/repository into CI_PROJECT_DIR to make it cachable
+
+test_and_report:
+  stage: test
+  image: maven:3.8.3-openjdk-17-slim
+  script:
+    - >
+      mvn -P autotest
+      clean verify site
+      -Dseleniumtest.skip=true
+  coverage: /Total.*?([0-9]{1,3})%/ # extract total JaCoCo coverage from job output
+  artifacts:
+    paths:
+      - target/site/ # save the whole site directory
+    reports: # these reports are shown below the tab "Tests" in the GitLab pipeline
+      junit: target/surefire-reports/TEST-*.xml
+
+sonar_scanner:
+  stage: test
+  image: maven:3.8.3-openjdk-17-slim
+  script:
+    - >
+      mvn -P autotest
+      clean verify sonar:sonar
+      -Dseleniumtest.skip=true
+      -Dsonar.host.url=https://gitlab.nt.fh-koeln.de/sonarqube
+      -Dsonar.password=$SONAR_PASSWORD
+      -Dsonar.projectName=$GITLAB_USER_LOGIN-toolbox
+      -Dsonar.projectKey=$GITLAB_USER_LOGIN-toolbox
+  rules:
+    # only run if neccessary environment variables are present
+    - if: $SONAR_PASSWORD
+      when: always
+    - when: never
+
+# TODO add javadoc job here
+javadoc:
+  stage: javadoc
+  image: maven:3.8.3-openjdk-17-slim
+  script:
+    - pwd  # Print current working directory
+    - ls -R  # List files recursively
+    - mvn -X javadoc:javadoc #generiert Javadoc-Dokumentation
+  artifacts:
+    paths:
+      - target/site/
+  only:
+    - master #In branch master
+
+build_cloudsql_jar:
+  stage: build
+  image: maven:3.8.3-openjdk-17-slim
+  script: 
+    - mvn -P googleclouddeploy package # uses GCP dependencies and skips tests       
+  artifacts:
+    paths:
+      - target/toolbox-*.jar
+
+generate_cobertura: # cf. https://docs.gitlab.com/ee/ci/testing/test_coverage_visualization.html#maven-example
+  stage: build
+  image: registry.gitlab.com/haynes/jacoco2cobertura:1.0.7
+  needs: 
+    - test_and_report # needs target/site/jacoco/jacoco.xml 
+  script:
+    # convert report from jacoco to cobertura, using relative project path
+    - python /opt/cover2cover.py target/site/jacoco/jacoco.xml $CI_PROJECT_DIR/src/main/java/ > target/site/cobertura.xml
+  artifacts:
+    reports:
+      coverage_report: # cf. https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportscoverage_report
+        coverage_format: cobertura
+        path: target/site/cobertura.xml
+
+.deploy_to_cloud_run:
+  image: google/cloud-sdk:441.0.0-alpine
+  needs:
+    - build_cloudsql_jar # needs target/toolbox-x.y.z-SNAPSHOT.jar
+  script:
+    - >
+      gcloud auth activate-service-account
+      --key-file=<(echo $GCP_CLOUD_BUILD_SERVICE_KEY)
+    - > 
+      gcloud builds submit .
+      --project=$GCP_PROJECT_ID
+      --config=cloudbuild.yaml
+      --substitutions=_GCP_CLOUD_SQL_INSTANCE_CONNECTION_NAME="$GCP_CLOUD_SQL_INSTANCE_CONNECTION_NAME",_STAGE="$STAGE",_TOOLBOX_BUILD_VERSION="$CI_COMMIT_SHA"
+    - >
+      gcloud run services describe toolbox-$STAGE
+      --project=$GCP_PROJECT_ID
+      --region=europe-west4
+      --format="value(status.url)" > $GCP_CLOUD_ENDPOINT_URL_FILE_NAME
+    - GCP_CLOUD_ENDPOINT_URL=$(cat $GCP_CLOUD_ENDPOINT_URL_FILE_NAME)
+    - echo "GCP_CLOUD_ENDPOINT_URL=$GCP_CLOUD_ENDPOINT_URL" >> deploy-$STAGE.env
+  after_script:
+    - rm /tmp/gcloud-service-key.json
+  artifacts:
+    paths:
+      - $GCP_CLOUD_ENDPOINT_URL_FILE_NAME
+    reports:
+      dotenv: deploy-$STAGE.env
+  environment:
+    name: $STAGE
+    url: $GCP_CLOUD_ENDPOINT_URL # to be expandable, we need the $STAGE-deploy.env (cf. https://docs.gitlab.com/ee/ci/environments/#set-a-dynamic-environment-url)
+
+deploy_to_cloud_run_staging:
+  extends: .deploy_to_cloud_run
+  stage: deploy_staging
+  variables: 
+    STAGE: staging
+    GCP_CLOUD_ENDPOINT_URL_FILE_NAME: gcp_cloud_endpoint_url_staging.txt
+  rules:
+    # only run if neccessary environment variables are present
+    - if: $GCP_CLOUD_SQL_INSTANCE_CONNECTION_NAME && $GCP_CLOUD_BUILD_SERVICE_KEY && $GCP_PROJECT_ID
+    - when: never
+
+load_performance: # cf. https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Verify/Load-Performance-Testing.gitlab-ci.yml
+  stage: performance
+  image: 
+    name: grafana/k6:0.46.0
+    entrypoint: [""]                         # Docker entrypoint is ["k6"]
+  needs:
+    - deploy_to_cloud_run_staging            # need artifact gcp_cloud_endpoint_url_staging.txt
+  script: 
+    - >
+      k6 run ./src/test/k6/loadtests.js
+      --summary-export=load-performance.json
+      --env BASEURL=$(cat gcp_cloud_endpoint_url_staging.txt)
+  artifacts:
+    reports:
+      load_performance: load-performance.json # cf. https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsload_performance
+  rules:
+    # only run if neccessary environment variables are present
+    - if: $GCP_CLOUD_SQL_INSTANCE_CONNECTION_NAME && $GCP_CLOUD_BUILD_SERVICE_KEY && $GCP_PROJECT_ID
+    - when: never
+
+deploy_to_cloud_run_production:
+  extends: .deploy_to_cloud_run
+  stage: deploy_production
+  needs:
+    - build_cloudsql_jar # we have to repeat that from .deploy_to_cloud_run
+    - load_performance
+  variables: 
+    STAGE: production
+    GCP_CLOUD_ENDPOINT_URL_FILE_NAME: gcp_cloud_endpoint_url_production.txt
+  rules:
+    - if: ($CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "main") && $GCP_CLOUD_SQL_INSTANCE_CONNECTION_NAME && $GCP_CLOUD_BUILD_SERVICE_KEY && $GCP_PROJECT_ID
+    - when: never

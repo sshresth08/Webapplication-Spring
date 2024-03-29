@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Toolbox Main</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+  <body>
+    <h1>Toolbox by sshresth</h1>
+    <p>
+      "Toolbox" is an extensible bunch of everyday tools and is proud on its CSS
+      free web 1.0 look and feel. Click on the links below to navigate.
+    </p>
+    <ul>
+      <li><a href="./todolist">ToDo List</a></li>
+      <li><a href="./palindrome">Palindrome Checker</a></li>
+    </ul>
+    <p>
+      Toolbox version:
+      <span
+        th:text="${@environment.getProperty('TOOLBOX_BUILD_VERSION')}"
+      ></span>
+    </p>
+    <p>
+      Active profile:
+      <span th:text="${@environment.getActiveProfiles()[0]}"></span>
+    </p>
+  </body>
+</html>
